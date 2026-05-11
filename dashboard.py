@@ -63,6 +63,6 @@ while True:
             df_show = df_show.rename(columns={'z_score': 'Nivel de rareza'})
             st.dataframe(df_show, width='stretch')
             
-            st.info(f"Actualización: {time.strftime('%H:%M:%S')}. La gráfica de Z-Score solo muestra aeronaves dentro del radio de influencia.")
+            st.info(f"Actualización: {time.strftime('%H:%M:%S')}. La gráfica solo muestra aeronaves dentro del radio de influencia.")
             
     time.sleep(5)

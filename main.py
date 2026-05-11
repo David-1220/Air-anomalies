@@ -10,7 +10,7 @@ def main():
     rank = comm.Get_rank()
     size = comm.Get_size()
 
-    # FASE 1: Nodo Maestro - Ingesta de Big Data
+    #  Nodo Maestro se encarga de la ingestión y limpieza de datos
     if rank == 0:
         print("--- Iniciando Pipeline Geoespacial y MPI (Equipo 1) ---")
         try:
@@ -21,10 +21,10 @@ def main():
                 print(" ERROR: No hay datos de vuelos disponibles.")
                 comm.Abort()
 
-            # Presión de Argentina para ajustar la sensibilidad del Z-Score
+            # Presión de Argentina para ajustar la sensibilidad de la detección de anomalías
             valor_base = df_w['Presion'].iloc[-1] if not df_w.empty else 1013.25
             
-            # Reparto de carga para MPI
+            # dividimos el DataFrame de vuelos en partes iguales para cada nodo
             chunks = np.array_split(df_f, size)
             cols = df_f.columns.tolist()
         except Exception as e:
@@ -33,20 +33,20 @@ def main():
     else:
         chunks, cols, valor_base = None, None, None
 
-    # Comunicación Colectiva: Enviamos el trabajo a los esclavos
+    # Distribuimos los datos a los nodos trabajadores
     my_chunk_raw = comm.scatter(chunks, root=0)
     cols = comm.bcast(cols, root=0)
     valor_base = comm.bcast(valor_base, root=0)
 
     my_chunk = pd.DataFrame(my_chunk_raw, columns=cols) if isinstance(my_chunk_raw, np.ndarray) else my_chunk_raw
 
-    # FASE 2: Cada núcleo usa la RTX 3050 para calcular distancias (Haversine) y anomalías
+    # Cada núcleo usa la RTX 3050 para calcular distancias (Haversine) y anomalías
     local_results = gpu_analysis(my_chunk, valor_base)
 
-    # FASE 3: Recolección de resultados en Nodo Maestro
+    #  Recolectamos los resultados de todos los nodos al maestro
     all_results = comm.gather(local_results, root=0)
 
-    # FASE 4: Reporte de Influencia Espacial (Solo Rank 0)
+    # Reporte final en el nodo maestro
     if rank == 0:
         print("\n" + "="*60)
         print("--- SISTEMA DE VIGILANCIA: ANOMALIAS DE ALTITUD (EQUIPO 1) ---")
@@ -63,7 +63,7 @@ def main():
             
         print(f" -> Aeronaves Globales en Radar: {len(vuelos_totales)}")
         print(f" -> Aeronaves en Geocerca de Influencia (<1500km): {vuelos_cerca}")
-        print(f" -> Telemetria Barometrica Local (ThingSpeak): {valor_base:.2f} hPa")
+        print(f" -> Presion Atmosferica Local (ThingSpeak): {valor_base:.2f} hPa")
         print(f" -> Alertas por Maniobras de Altitud Atipicas: {total_anomalias}")
         
         if total_anomalias > 0:
