@@ -1,0 +1,8 @@
+DIAGNOSTICO_REAL.TXT
+resultados_finales.csv
+*export.csv
+
+__pycache__/
+*.pyc
+
+.env
